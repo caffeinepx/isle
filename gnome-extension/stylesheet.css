@@ -814,7 +814,7 @@
   border-radius: 10px;
   background-color: rgba(255, 255, 255, 0.07);
 }
-.isle-cal-world-icon { icon-size: 18px; color: rgba(255, 255, 255, 0.9); }
+.isle-cal-world-icon { width: 28px; height: 28px; }
 .isle-cal-world-city { font-size: 14px; font-weight: 600; }
 .isle-cal-world-side { spacing: 0; }
 .isle-cal-world-side-line { spacing: 10px; }

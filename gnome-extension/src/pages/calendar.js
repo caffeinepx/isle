@@ -17,6 +17,7 @@ import {REMINDER_LATE_MS, occurrenceKey, parseReminderId, spanOf, standsInFor} f
 import {VERTICAL, onUiScale, px} from '../compat.js';
 import * as Format from '../format.js';
 import {icon, iconButton, label} from '../widgets.js';
+import {DayNightIcon} from '../weatherScene.js';
 import * as WorldClocks from '../worldClocks.js';
 import {Page} from './page.js';
 import {onHover} from './tasks.js';
@@ -97,13 +98,6 @@ function rangeText(start, end) {
     const [from, to] = [timeText(start), timeText(end)];
     const mark = text => text.replace(/^[\d:.\s]+/, '');
     return mark(from) && mark(from) === mark(to) ? `${from.slice(0, -mark(from).length).trim()} – ${to}` : `${from} – ${to}`;
-}
-
-/** A city's sky at `hour`, as its World Clock row shows it: day, evening (16:00 to 18:59) or night (19:00 to 5:59). */
-function skyIcon(hour) {
-    if (hour >= 19 || hour < 6)
-        return 'isle-moon';
-    return hour >= 16 ? 'isle-sunset-symbolic' : 'isle-sun-symbolic';
 }
 
 /** An alarm's wait is cut into naps this long at most: a sleeping computer stops the time-outs' clock. */
@@ -467,6 +461,7 @@ export const CalendarPage = GObject.registerClass({
         this._worldScroll.visible = showing;
         this._worldStrip.visible = !showing && this._cities.length > 0;
         this._tickWorld();
+        this._syncWorldMotion();
         this._renderDayHeader();
         this._refresh();
     }
@@ -487,7 +482,7 @@ export const CalendarPage = GObject.registerClass({
                 this._worldStrip.child.add_child(chip);
             }
             const row = new St.BoxLayout({style_class: 'isle-cal-world-row'});
-            clock.icon = new St.Icon({style_class: 'isle-cal-world-icon', y_align: Clutter.ActorAlign.CENTER});
+            clock.icon = new DayNightIcon();
             row.add_child(clock.icon);
             const city = label(name, 'isle-cal-world-city', {x_expand: true});
             city.clutter_text.ellipsize = Pango.EllipsizeMode.END;
@@ -539,19 +534,17 @@ export const CalendarPage = GObject.registerClass({
                 text.text = value;
         };
         for (const clock of this._worldClocks) {
-            const {timezone, chipTime, meta, time} = clock;
+            const {timezone, chipTime, meta, time, icon} = clock;
             const there = now.to_timezone(timezone);
             const shown = Format.timeOfDay(there);
             set(chipTime, shown);
             set(time, shown);
             set(meta, [WorldClocks.dayText(timezone, now), WorldClocks.offsetText(timezone, now)].filter(Boolean).join(' · '));
+            // Day there is morning through evening, local to that city.
+            icon?.setNight(there.get_hour() < 6 || there.get_hour() >= 19);
             this._placeMeta(clock);
-            const sky = skyIcon(there.get_hour());
-            if (clock.icon && clock.sky !== sky) {
-                clock.sky = sky;
-                clock.icon.gicon = icon(sky);
-            }
         }
+        this._syncWorldMotion();
         if (this.active)
             this.later('world', (60 - now.get_seconds()) * 1000 + 50, () => this._tickWorld());
     }
@@ -574,6 +567,14 @@ export const CalendarPage = GObject.registerClass({
         const stack = need + 64 > row.width;
         meta.visible = !stack;
         under.visible = stack;
+    }
+
+    /** The sun and moon move only while the clocks are the thing on screen. */
+    _syncWorldMotion() {
+        const on = this.active && this._showingWorld;
+        for (const {icon} of this._worldClocks)
+            if (icon)
+                icon.animated = on;
     }
 
     // The desktop's calendars
@@ -1219,6 +1220,7 @@ export const CalendarPage = GObject.registerClass({
         this._bindSource();
         this._loadCalendars();
         this._tickWorld();
+        this._syncWorldMotion();
         if (!this._followToday()) {
             this._requestRange();
             this._refresh();
@@ -1231,6 +1233,7 @@ export const CalendarPage = GObject.registerClass({
         this._stopAdding();
         this._setPicking(false);
         this.cancel('world');
+        this._syncWorldMotion();
         // Closed, only today and tomorrow are needed (the alerts): a far month looked at is let go.
         const today = startOfDay(new Date());
         this._isleRange = [today, addDays(today, 2)];

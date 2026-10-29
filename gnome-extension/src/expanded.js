@@ -46,6 +46,14 @@ const SETTINGS_OPACITY = 153;
 const PAUSED_BARS_OPACITY = 110;
 const SLIDE_DISTANCE = 48;
 const SLIDE_DURATION = 260;
+/** Touchpad travel (in wheel clicks) that flips a page; one flip a swipe. */
+const SWIPE_STEP = 1.5;
+/** Wheel travel that flips a page; a long spin flips several. */
+const WHEEL_STEP = 1;
+/** Minimum time between page flips from a spinning wheel. */
+const WHEEL_REPEAT_MS = 200;
+/** A pause this long between scroll events starts a new gesture. */
+const GESTURE_GAP_MS = 180;
 
 // Header and pager of the open island; the island itself sizes and tints around it.
 export const ExpandedView = GObject.registerClass({
@@ -77,10 +85,14 @@ export const ExpandedView = GObject.registerClass({
         this._index = Math.max(0, pages.findIndex(page => page.available));
         this._active = false;
         this._width = px(EXPANDED_WIDTH);
+        this._lastFlip = 0;
+        /** The scroll gesture in progress: travel so far, and whether it flipped. */
+        this._gesture = {dx: 0, dy: 0, flipped: false, at: 0};
         /** Set once smooth scrolling is seen; its click-style copies are then dropped. */
         this._smoothScrolling = false;
-        // Before any page sees them (Usage steps through its providers by scrolls).
-        this.connect('captured-event', (_actor, event) => this._dropScrollCopies(event));
+        // Sideways scrolls flip pages before a list or the lyrics see them.
+        // A vertical scroll those leave flips the page in `vfunc_scroll_event`.
+        this.connect('captured-event', (_actor, event) => this._captureScroll(event));
 
         this._header = this._buildHeader();
         // The open tab's name is only measured right once on the stage. Measured as soon as it is on one,
@@ -604,20 +616,27 @@ export const ExpandedView = GObject.registerClass({
         this._unwatchClock = null;
     }
 
-    /** Pages change by their tabs alone: a scroll no list or lyrics took goes no further. */
-    vfunc_scroll_event() {
-        return Clutter.EVENT_STOP;
-    }
-
-    /** Smooth scrolls also come as click-style copies (UP, DOWN...), not always marked as emulated: a page
-     * counting both (Usage) moved two steps a swipe. Only a list, which steps on clicks alone, gets them. */
-    _dropScrollCopies(event) {
+    /** Sideways scrolls flip pages before any child sees them; vertical ones pass on. */
+    _captureScroll(event) {
         if (event.type() !== Clutter.EventType.SCROLL)
             return Clutter.EVENT_PROPAGATE;
-        this._smoothScrolling ||= event.get_scroll_direction() === Clutter.ScrollDirection.SMOOTH;
-        if (this._isCopy(event) && !this._overList(event))
+        // Smooth scrolls also come as click-style copies (UP, LEFT, ...),
+        // not always marked as emulated; counting both flipped two pages.
+        const smooth = event.get_scroll_direction() === Clutter.ScrollDirection.SMOOTH;
+        this._smoothScrolling ||= smooth;
+        if (this._isCopy(event))
+            return this._overList(event) ? Clutter.EVENT_PROPAGATE : Clutter.EVENT_STOP;
+        this._trackGesture(event);
+        return this._isSideways(event) ? this._flipFromScroll(event) : Clutter.EVENT_PROPAGATE;
+    }
+
+    /** What reaches here bubbled up unused by the page. */
+    vfunc_scroll_event(event) {
+        // A click-style copy let through for a list flips nothing.
+        if (this._isCopy(event))
             return Clutter.EVENT_STOP;
-        return Clutter.EVENT_PROPAGATE;
+        // An up/down scroll no page part wanted.
+        return this._flipFromScroll(event);
     }
 
     /** Whether `event` is the click-style copy of a smooth scroll. */
@@ -640,6 +659,83 @@ export const ExpandedView = GObject.registerClass({
                 return actor.vscrollbar_policy !== St.PolicyType.NEVER;
         }
         return false;
+    }
+
+    /** Adds `event` to the gesture in progress, or starts a new one. */
+    _trackGesture(event) {
+        const now = GLib.get_monotonic_time() / 1000;
+        const gesture = this._gesture;
+        if (now - gesture.at > GESTURE_GAP_MS)
+            Object.assign(gesture, {dx: 0, dy: 0, flipped: false});
+        gesture.at = now;
+        let stopped = event.get_scroll_finish_flags() !== Clutter.ScrollFinishFlags.NONE;
+        if (event.get_scroll_direction() === Clutter.ScrollDirection.SMOOTH) {
+            const [dx, dy] = event.get_scroll_delta();
+            gesture.dx += dx;
+            gesture.dy += dy;
+            // A touchpad ends each swipe with an event that does not move.
+            stopped ||= dx === 0 && dy === 0;
+        }
+        // Fingers lifted: the next touch is a new swipe however soon it comes.
+        if (stopped)
+            gesture.at = 0;
+    }
+
+    /** Whether `event` belongs to a sideways scroll. */
+    _isSideways(event) {
+        switch (event.get_scroll_direction()) {
+        case Clutter.ScrollDirection.LEFT:
+        case Clutter.ScrollDirection.RIGHT:
+            return true;
+        case Clutter.ScrollDirection.SMOOTH:
+            // The whole gesture decides, so a wobble does not switch axis.
+            return Math.abs(this._gesture.dx) > Math.abs(this._gesture.dy);
+        default:
+            return false;
+        }
+    }
+
+    /** Flips the page if the scroll so far calls for it. */
+    _flipFromScroll(event) {
+        const gesture = this._gesture;
+        const now = GLib.get_monotonic_time() / 1000;
+        let step = 0;
+        switch (event.get_scroll_direction()) {
+        case Clutter.ScrollDirection.DOWN:
+        case Clutter.ScrollDirection.RIGHT:
+            step = 1;
+            break;
+        case Clutter.ScrollDirection.UP:
+        case Clutter.ScrollDirection.LEFT:
+            step = -1;
+            break;
+        case Clutter.ScrollDirection.SMOOTH: {
+            const travel = this._isSideways(event) ? gesture.dx : gesture.dy;
+            const wheel = event.get_scroll_source() === Clutter.ScrollSource.WHEEL;
+            if (gesture.flipped || Math.abs(travel) < (wheel ? WHEEL_STEP : SWIPE_STEP))
+                return Clutter.EVENT_STOP;
+            step = Math.sign(travel);
+            if (wheel) {
+                // Count afresh, so a long spin flips again.
+                gesture.dx = gesture.dy = 0;
+            } else {
+                // One page a swipe, however far it goes.
+                gesture.flipped = true;
+            }
+            break;
+        }
+        }
+        if (!step)
+            return Clutter.EVENT_STOP;
+        // Clicks and spins are spaced out; a swipe flips once anyway.
+        if (!gesture.flipped && now - this._lastFlip < WHEEL_REPEAT_MS)
+            return Clutter.EVENT_STOP;
+        this._lastFlip = now;
+        // Pages without a tab are skipped.
+        const index = this._nearestAvailable(this._index, step);
+        if (index !== null)
+            this.showPage(index);
+        return Clutter.EVENT_STOP;
     }
 
     /** Lets go of the timers and the signals of objects that outlive the view. */

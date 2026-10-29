@@ -118,7 +118,7 @@ place, dimmed, so the layout never jumps.
 | Super+V (GNOME's calendar shortcut) | Open the clipboard history, search ready, held open (Settings may leave it to GNOME's calendar) | Close |
 | Super+I (Settings: any shortcut) | Ask the assistant; typing while it listens types the request instead | Speak again |
 | Click a tab | – | Go to that page |
-| Scroll, or swipe with two fingers | – | Lists and lyrics scroll; pages change only by their tabs |
+| Scroll, or swipe with two fingers | – | Lists and lyrics scroll; elsewhere, and a sideways swipe, previous / next page |
 | ← → Enter (search field) | – | Choose a clipboard card; Enter pastes it into the window in front |
 | Esc | – | Clear the search, stop typing or renaming; then close when opened with Super+V |
 
