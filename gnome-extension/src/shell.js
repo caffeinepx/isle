@@ -5,6 +5,7 @@
 // OSD and keyboard state. Everything here is undone in `destroy()`.
 
 import GLib from 'gi://GLib';
+import Shell from 'gi://Shell';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
@@ -16,7 +17,8 @@ import {clutterBackend} from './compat.js';
 const MAX_RESTYLES_PER_SECOND = 5;
 
 /** Isle's own colour rules for the bar, as `_barRule` writes them, to take out again. */
-const BAR_RULE = /background-color: (?:transparent|#000000|rgba\(0, 0, 0, [\d.]+\));/g;
+const BAR_RULE = /background-color: (?:transparent|#000000|rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*\));/g;
+const BAR_GLASS = 'isle-bar-glass';
 /** Below this opacity (%) the bar's text needs its shadow to read on the wallpaper. */
 const SHADOW_BELOW = 50;
 /** Style class keeping the bar's text white in GNOME's light style too. */
@@ -41,7 +43,7 @@ export class TopBar extends Signals.EventEmitter {
         this._dateMenu.reactive = false;
 
         this._settingsChanged = [
-            ...['top-bar-style', 'top-bar-opacity', 'top-bar-mac', 'island-theme'].map(key => settings.connect(`changed::${key}`, () => {
+            ...['top-bar-style', 'top-bar-opacity', 'top-bar-mac', 'island-theme', 'appearance', 'glass', 'glass-strength', 'glass-top-bar'].map(key => settings.connect(`changed::${key}`, () => {
                 this._yielded = false;
                 const blended = this._blended;
                 this._applyStyle();
@@ -99,9 +101,10 @@ export class TopBar extends Signals.EventEmitter {
             delete Main.panel.toggleCalendar;
     }
 
-    /** Whether Isle paints the bar. Off, the shell theme's bar is left alone. */
+    /** Whether Isle paints the bar. GNOME Shell leaves the theme's bar, unless glass covers it. */
     get ownsBar() {
-        return this._settings.get_boolean('top-bar-mac');
+        const glassBar = this._settings.get_boolean('glass') && this._settings.get_boolean('glass-top-bar');
+        return this._settings.get_string('appearance') !== 'shell' || glassBar;
     }
 
     /** The bar's opacity in %: Settings' slider, else as the older Glass (0) or Black (100) choice says. */
@@ -116,7 +119,15 @@ export class TopBar extends Signals.EventEmitter {
     /** Whether the bar is as black as the island; otherwise the island hangs from the screen's top edge.
      * GNOME's grey island never is. */
     get blendsIn() {
-        return this.ownsBar && this.opacity >= 100 && this._settings.get_string('island-theme') === 'black';
+        const shell = this._settings.get_string('appearance') === 'shell';
+        const glass = this._settings.get_boolean('glass');
+        return this.ownsBar && this.opacity >= 100 && !shell && !glass;
+    }
+
+    /** `{fill, radius, brightness}` while glass covers the top bar, else null. */
+    setBarGlass(glass) {
+        this._barGlass = glass;
+        this._applyStyle();
     }
 
     /** Keeps the top bar's centre clear for the island. */
@@ -138,6 +149,7 @@ export class TopBar extends Signals.EventEmitter {
     /** Colour and style classes from the settings; remembers `blendsIn` to spot a change. */
     _applyStyle() {
         this._blended = this.blendsIn;
+        this._syncBarGlass();
         this._syncColor();
         // The bar's height changes with these; `height-changed` re-lays out the island.
         const own = this.ownsBar;
@@ -168,11 +180,38 @@ export class TopBar extends Signals.EventEmitter {
 
     /** Black at `opacity` %, as an inline rule; null for none (the theme's colour). */
     _barRule(opacity) {
+        if (this.ownsBar && this._barGlass?.fill) {
+            const [red, green, blue, alpha] = this._barGlass.fill;
+            const byte = channel => Math.round(Math.min(1, Math.max(0, channel)) * 255);
+            return `background-color: rgba(${byte(red)}, ${byte(green)}, ${byte(blue)}, ${alpha});`;
+        }
         if (opacity === null)
             return null;
         if (opacity <= 0)
             return 'background-color: transparent;';
         return opacity >= 100 ? 'background-color: #000000;' : `background-color: rgba(0, 0, 0, ${opacity / 100});`;
+    }
+
+    /** Blurs what is behind the bar while glass is asked for there. */
+    _syncBarGlass() {
+        const panel = Main.panel;
+        let effect = null;
+        try {
+            effect = panel.get_effect(BAR_GLASS);
+        } catch (e) {
+            effect = null;
+        }
+        if (!this._barGlass) {
+            if (effect)
+                panel.remove_effect(effect);
+            return;
+        }
+        if (!effect) {
+            effect = new Shell.BlurEffect({mode: Shell.BlurMode.BACKGROUND});
+            panel.add_effect_with_name(BAR_GLASS, effect);
+        }
+        effect.radius = this._barGlass.radius;
+        effect.brightness = this._barGlass.brightness;
     }
 
     /** The bar's style with Isle's colour rule at `opacity`, the rest of it left alone. */
@@ -209,6 +248,8 @@ export class TopBar extends Signals.EventEmitter {
         this._restoreToggle();
 
         // No colour of Isle's: the theme's again.
+        this._barGlass = null;
+        this._syncBarGlass();
         this._syncColor(null);
         setStyleClasses(Main.panel, {
             [BAR_CLASS]: false, [COMPACT_BAR_CLASS]: false, [NOTCH_BAR_CLASS]: false, [GLASS_BAR_CLASS]: false,

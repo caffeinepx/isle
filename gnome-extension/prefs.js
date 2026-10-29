@@ -309,24 +309,33 @@ export default class IslePreferences extends ExtensionPreferences {
         const page = new Adw.PreferencesPage({title: 'Island', icon_name: 'preferences-desktop-appearance-symbolic'});
 
         const look = new Adw.PreferencesGroup({title: 'Appearance'});
-        look.add(choiceRow(settings, 'island-theme', 'Island', 'Isle’s own black, or dark glass that shows what is behind it, blurred', [
-            ['black', 'Black'],
-            ['glass', 'Glass'],
-        ]));
-        look.add(choiceRow(settings, 'appearance', 'Colours', 'Isle’s own dark palette, or the GNOME Shell theme in use', [
-            ['isle', 'Isle'],
+        look.add(choiceRow(settings, 'appearance', 'Island', 'Black, or the GNOME Shell theme’s top bar', [
+            ['isle', 'Black'],
             ['shell', 'GNOME Shell'],
         ]));
-        const macBar = switchRow(settings, 'top-bar-mac', 'See-through top bar', 'Like on a Mac. Off leaves your shell theme’s bar alone');
-        look.add(macBar);
+        const glass = switchRow(settings, 'glass', 'Glass', 'Blur and a tint of the island colour. The colour stays.');
+        look.add(glass);
+        const strength = glassRow(settings);
+        settings.bind('glass', strength, 'sensitive', Gio.SettingsBindFlags.GET);
+        look.add(strength);
+        const glassBar = switchRow(settings, 'glass-top-bar', 'On the top bar too', 'The same blur and tint on the bar');
+        settings.bind('glass', glassBar, 'sensitive', Gio.SettingsBindFlags.GET);
+        look.add(glassBar);
         const bar = topBarRow(settings, window);
-        settings.bind('top-bar-mac', bar, 'sensitive', Gio.SettingsBindFlags.GET);
         look.add(bar);
         const compact = switchRow(settings, 'compact-top-bar', 'Compact top bar', 'A slimmer top bar that frames the island like a bezel');
         const inside = switchRow(settings, 'island-in-top-bar', 'Island inside the top bar',
             'Like a notch: the closed island never covers windows');
-        settings.bind('top-bar-mac', compact, 'sensitive', Gio.SettingsBindFlags.GET);
-        settings.bind('top-bar-mac', inside, 'sensitive', Gio.SettingsBindFlags.GET);
+        const ownBar = () => {
+            const covered = settings.get_boolean('glass') && settings.get_boolean('glass-top-bar');
+            const paints = settings.get_string('appearance') !== 'shell' || covered;
+            bar.sensitive = paints && !covered;
+            compact.sensitive = paints;
+            inside.sensitive = paints;
+        };
+        for (const key of ['appearance', 'glass', 'glass-top-bar'])
+            settings.connect(`changed::${key}`, ownBar);
+        ownBar();
         look.add(compact);
         look.add(inside);
         const depth = spinRow(settings, 'notch-depth', 'Island height', 'How far the closed island hangs below the top bar, in pixels', 24, 40);
@@ -708,6 +717,46 @@ function agentsFound() {
 function switchRow(settings, key, title, subtitle) {
     const row = new Adw.SwitchRow({title, subtitle});
     settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
+    return row;
+}
+
+/** How strong the glass is: clear on the left, a darker tint on the right. */
+function glassRow(settings) {
+    const row = new Adw.ActionRow({title: 'Tint'});
+    const scale = new Gtk.Scale({
+        adjustment: new Gtk.Adjustment({lower: 0, upper: 100, step_increment: 5, page_increment: 25}),
+        draw_value: false, width_request: 150, valign: Gtk.Align.CENTER,
+    });
+    const ends = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER});
+    ends.append(new Gtk.Label({label: 'Clear', css_classes: ['dim-label', 'caption']}));
+    ends.append(scale);
+    ends.append(new Gtk.Label({label: 'Dark', css_classes: ['dim-label', 'caption']}));
+    row.add_suffix(ends);
+    row.activatable_widget = scale;
+    const describe = value => {
+        row.subtitle = value <= 15 ? 'Clear, like liquid glass' : value >= 85 ? 'A dark tint' : 'Blur and tint';
+    };
+    let syncing = false;
+    scale.connect('value-changed', () => {
+        if (syncing)
+            return;
+        const value = Math.round(scale.get_value() / 5) * 5;
+        describe(value);
+        if (settings.get_int('glass-strength') !== value)
+            settings.set_int('glass-strength', value);
+    });
+    const sync = () => {
+        const value = settings.get_int('glass-strength');
+        describe(value);
+        if (Math.round(scale.get_value()) === value)
+            return;
+        syncing = true;
+        scale.set_value(value);
+        syncing = false;
+    };
+    const changed = settings.connect('changed::glass-strength', sync);
+    row.connect('destroy', () => settings.disconnect(changed));
+    sync();
     return row;
 }
 

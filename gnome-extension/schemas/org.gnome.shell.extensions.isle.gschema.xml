@@ -25,8 +25,24 @@
         <choice value="shell"/>
       </choices>
       <default>'isle'</default>
-      <summary>Colours</summary>
-      <description>isle: Isle's own dark palette. shell: the GNOME Shell theme's top bar, for text, icons and accent. Glass still blurs what is behind the island.</description>
+      <summary>Island</summary>
+      <description>isle: Isle's own black. shell: the GNOME Shell theme's top bar, for the fill, text, icons and accent.</description>
+    </key>
+    <key name="glass" type="b">
+      <default>false</default>
+      <summary>Glass</summary>
+      <description>Blurs what is behind the island and lays a tint of the island colour over it. It does not replace that colour.</description>
+    </key>
+    <key name="glass-strength" type="i">
+      <range min="0" max="100"/>
+      <default>30</default>
+      <summary>Glass strength</summary>
+      <description>0 is clear liquid glass. 100 is a darker tint and a softer blur.</description>
+    </key>
+    <key name="glass-top-bar" type="b">
+      <default>false</default>
+      <summary>Glass on the top bar</summary>
+      <description>The same blur and tint on the top bar, while Glass is on.</description>
     </key>
     <key name="top-bar-mac" type="b">
       <default>true</default>

@@ -280,6 +280,7 @@ export class Controller {
         for (const view of [this._compact, ...this._peeks, this._expanded, this._voice])
             this._island.addView(view);
         Main.layoutManager.addChrome(this._island, {trackFullscreen: true});
+        this._syncTheme();
         // GNOME Shell shutting down takes the island with the stage, Isle still on, and GNOME 51 runs on a
         // moment after: nothing of Isle's may run on it then.
         this._island.connect('destroy', () => {
@@ -499,7 +500,8 @@ export class Controller {
         for (const key of ['hidden-pages', 'world-clocks', 'app-usage'])
             this._settingsChanged.push(this._settings.connect(`changed::${key}`, () => this._syncPages()));
         this._settingsChanged.push(this._settings.connect('changed::app-usage-clear', () => this._syncAppUsage()));
-        this._settingsChanged.push(this._settings.connect('changed::island-theme', () => this._syncTheme()));
+        for (const key of ['appearance', 'glass', 'glass-strength', 'glass-top-bar'])
+            this._settingsChanged.push(this._settings.connect(`changed::${key}`, () => this._syncTheme()));
         for (const provider of AGENT_PROVIDERS) {
             this._settingsChanged.push(this._settings.connect(`changed::agent-alerts-${provider}`, () =>
                 this._hookAgent(provider)));
@@ -781,23 +783,33 @@ export class Controller {
         this._expanded.pageNamed('calendar').worldClocks = this._settings.get_boolean('world-clocks');
     }
 
-    /** The island in Isle's black or in dark glass, with GNOME's accent (see theme.js). */
+    /** A Glass choice from before the switch: turn the effect on once, then the switch owns it. */
+    _migrateGlass() {
+        if (this._settings.get_user_value('glass') || this._settings.get_string('island-theme') !== 'glass')
+            return;
+        this._settings.set_boolean('glass', true);
+    }
+
+    /** Black or the shell theme, with glass as a blur and a tint over that colour. */
     _syncTheme() {
-        Theme.setTheme(this._settings.get_string('island-theme'));
-        const glass = Theme.theme() === 'glass';
-        for (const [name, on] of [['isle-theme-glass', glass], ['isle-accent-system', glass && HAS_ACCENT]]) {
+        this._migrateGlass();
+        const shell = this._settings.get_string('appearance') === 'shell';
+        Theme.setShellFill(shell ? [paint.red, paint.green, paint.blue, paint.alpha] : null);
+        Theme.setGlass(this._settings.get_boolean('glass'), this._settings.get_int('glass-strength') / 100);
+        const glass = Theme.glass();
+        // The glass stylesheet forces Isle's whites and blues. Shell colours keep their own.
+        for (const [name, on] of [['isle-theme-glass', glass && !shell], ['isle-accent-system', glass && !shell && HAS_ACCENT]]) {
             if (on)
                 this._island.add_style_class_name(name);
             else
                 this._island.remove_style_class_name(name);
         }
-        this._applyShellFill();
-    }
-
-    /** A black island follows the shell theme's top bar. Glass keeps its own fill and blur. */
-    _applyShellFill() {
-        const shell = this._settings.get_string('appearance') === 'shell';
-        Theme.setShellFill(shell && Theme.theme() !== 'glass' ? [paint.red, paint.green, paint.blue, paint.alpha] : null);
+        const blur = Theme.blur();
+        this._topBar?.setBarGlass(glass && this._settings.get_boolean('glass-top-bar') && blur ? {
+            fill: Theme.fill(),
+            radius: blur.radius,
+            brightness: blur.brightness,
+        } : null);
         this._island?.refreshTheme();
     }
 

@@ -42,15 +42,7 @@ Every width is even, so the island sits centred on its display to the pixel.
 The top bar is slimmed to a thin bezel (status icons and the tray stay in
 it) and see-through like glass, with no colour of its own. The
 island is a black notch hanging from the top edge of the screen with concave
-shoulders. Settings → Appearance → Island can make it **Glass** instead: what is
-behind it (windows and wallpaper) blurred (GNOME Shell's blur, radius 30) and
-dimmed under an 80% layer of rgba(19, 19, 21), as GNOME's menus measure with
-Blur my Shell, with a 1 px white edge at 10%; cut to the island's exact shape,
-shoulders and corners included, so nothing shows outside it. On glass,
-buttons are white at 8–16% instead of grey, an answer (Allow, Run, Join) and
-a toggle that is on take GNOME's accent colour (the user's, from GNOME 47),
-an OK stays white, and the assistant's and the alerts' light keeps to the
-edge, each colour lit by its own lightness, so it never burns to white. Settings → Appearance → Colours can follow the GNOME Shell theme's top bar instead of Isle's palette; Glass still blurs what is behind the island. See-through top bar can be turned off, and the shell theme's own bar is left as it is. Closed, it sits inside the bar
+shoulders. Settings → Appearance → Island is **Black** or **GNOME Shell** (the top bar's colour, text and accent). **Glass** is a separate switch: it blurs what is behind and lays a tint of that same colour over it, from clear to dark. It does not replace the colour. Glass on the top bar uses that blur and tint on the bar too. See-through top bar can be turned off, and the shell theme's own bar is left as it is. On glass with Black, buttons are white at 8–16% instead of grey, an answer (Allow, Run, Join) and a toggle that is on take GNOME's accent colour (the user's, from GNOME 47), an OK stays white, and the assistant's and the alerts' light keeps to the edge, each colour lit by its own lightness, so it never burns to white. Closed, it sits inside the bar
 (32 px, against 26 px when it hangs below instead): maximised
 windows start below the bar, so the resting island never covers an app and
 no screen space is lost to it. Alerts and the open island reach below the
