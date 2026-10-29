@@ -321,22 +321,8 @@ export default class IslePreferences extends ExtensionPreferences {
         const glassBar = switchRow(settings, 'glass-top-bar', 'On the top bar too', 'The same blur and tint on the bar');
         settings.bind('glass', glassBar, 'sensitive', Gio.SettingsBindFlags.GET);
         look.add(glassBar);
-        const bar = topBarRow(settings, window);
-        look.add(bar);
-        const compact = switchRow(settings, 'compact-top-bar', 'Compact top bar', 'A slimmer top bar that frames the island like a bezel');
         const inside = switchRow(settings, 'island-in-top-bar', 'Island inside the top bar',
             'Like a notch: the closed island never covers windows');
-        const ownBar = () => {
-            const covered = settings.get_boolean('glass') && settings.get_boolean('glass-top-bar');
-            const paints = settings.get_string('appearance') !== 'shell' || covered;
-            bar.sensitive = paints && !covered;
-            compact.sensitive = paints;
-            inside.sensitive = paints;
-        };
-        for (const key of ['appearance', 'glass', 'glass-top-bar'])
-            settings.connect(`changed::${key}`, ownBar);
-        ownBar();
-        look.add(compact);
         look.add(inside);
         const depth = spinRow(settings, 'notch-depth', 'Island height', 'How far the closed island hangs below the top bar, in pixels', 24, 40);
         settings.bind('island-in-top-bar', depth, 'sensitive', Gio.SettingsBindFlags.GET | Gio.SettingsBindFlags.INVERT_BOOLEAN);
@@ -720,21 +706,21 @@ function switchRow(settings, key, title, subtitle) {
     return row;
 }
 
-/** How strong the glass is: clear on the left, a darker tint on the right. */
+/** How glassy the island is, from a light liquid to a heavier one. */
 function glassRow(settings) {
-    const row = new Adw.ActionRow({title: 'Tint'});
+    const row = new Adw.ActionRow({title: 'Liquid glass'});
     const scale = new Gtk.Scale({
         adjustment: new Gtk.Adjustment({lower: 0, upper: 100, step_increment: 5, page_increment: 25}),
         draw_value: false, width_request: 150, valign: Gtk.Align.CENTER,
     });
     const ends = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER});
-    ends.append(new Gtk.Label({label: 'Clear', css_classes: ['dim-label', 'caption']}));
+    ends.append(new Gtk.Label({label: 'Less', css_classes: ['dim-label', 'caption']}));
     ends.append(scale);
-    ends.append(new Gtk.Label({label: 'Dark', css_classes: ['dim-label', 'caption']}));
+    ends.append(new Gtk.Label({label: 'More', css_classes: ['dim-label', 'caption']}));
     row.add_suffix(ends);
     row.activatable_widget = scale;
     const describe = value => {
-        row.subtitle = value <= 15 ? 'Clear, like liquid glass' : value >= 85 ? 'A dark tint' : 'Blur and tint';
+        row.subtitle = value <= 15 ? 'A light liquid glass' : value >= 85 ? 'Heavier glass' : 'How glassy the island is';
     };
     let syncing = false;
     scale.connect('value-changed', () => {
@@ -756,58 +742,6 @@ function glassRow(settings) {
     };
     const changed = settings.connect('changed::glass-strength', sync);
     row.connect('destroy', () => settings.disconnect(changed));
-    sync();
-    return row;
-}
-
-/** The top bar beside the island, from glass to black, on a slider; the island itself stays black. */
-function topBarRow(settings, window) {
-    const row = new Adw.ActionRow({title: 'Top bar'});
-    const scale = new Gtk.Scale({
-        adjustment: new Gtk.Adjustment({lower: 0, upper: 100, step_increment: 5, page_increment: 25}),
-        draw_value: false, width_request: 150, valign: Gtk.Align.CENTER,
-    });
-    scale.add_mark(50, Gtk.PositionType.BOTTOM, null);
-    const ends = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER});
-    ends.append(new Gtk.Label({label: 'Glass', css_classes: ['dim-label', 'caption']}));
-    ends.append(scale);
-    ends.append(new Gtk.Label({label: 'Black', css_classes: ['dim-label', 'caption']}));
-    row.add_suffix(ends);
-    row.activatable_widget = scale;
-    // Unset, the older Glass or Black choice says (as TopBar.opacity in shell.js).
-    const current = () => settings.get_user_value('top-bar-opacity') ? settings.get_int('top-bar-opacity')
-        : settings.get_string('top-bar-style') === 'black' ? 100 : 0;
-    const describe = value => {
-        row.subtitle = value <= 0 ? 'See-through glass' : value >= 100 ? 'The island blends into the bar'
-            : `${value}% black`;
-    };
-    let syncing = false;
-    scale.connect('value-changed', () => {
-        if (syncing)
-            return;
-        // Stored in steps of 5; the knob stays under the pointer meanwhile.
-        const value = Math.round(scale.get_value() / 5) * 5;
-        describe(value);
-        settings.set_int('top-bar-opacity', value);
-        // Kept in step, for anything that still reads the older choice.
-        const style = value >= 100 ? 'black' : 'glass';
-        if (settings.get_string('top-bar-style') !== style)
-            settings.set_string('top-bar-style', style);
-    });
-    const sync = () => {
-        // Moved only for a change from elsewhere: the step the knob is in already is this one.
-        if (Math.round(scale.get_value() / 5) * 5 !== current()) {
-            syncing = true;
-            scale.set_value(current());
-            syncing = false;
-        }
-        describe(current());
-    };
-    const changed = ['top-bar-opacity', 'top-bar-style'].map(key => settings.connect(`changed::${key}`, sync));
-    window.connect('close-request', () => {
-        changed.forEach(id => settings.disconnect(id));
-        return false;
-    });
     sync();
     return row;
 }

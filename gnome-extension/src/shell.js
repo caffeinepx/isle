@@ -51,7 +51,6 @@ export class TopBar extends Signals.EventEmitter {
                 if (this.blendsIn !== blended)
                     this.emit('style-changed');
             })),
-            settings.connect('changed::compact-top-bar', () => this._applyStyle()),
             settings.connect('changed::island-in-top-bar', () => this._applyStyle()),
         ];
         this._applyStyle();
@@ -151,13 +150,14 @@ export class TopBar extends Signals.EventEmitter {
         this._blended = this.blendsIn;
         this._syncBarGlass();
         this._syncColor();
-        // The bar's height changes with these; `height-changed` re-lays out the island.
-        const own = this.ownsBar;
+        // Glass on the bar only blurs and tints. It does not take the theme's height.
+        const glassBar = this._settings.get_boolean('glass') && this._settings.get_boolean('glass-top-bar');
+        const black = this._settings.get_string('appearance') !== 'shell';
         setStyleClasses(Main.panel, {
-            [BAR_CLASS]: own,
-            [COMPACT_BAR_CLASS]: own && this._settings.get_boolean('compact-top-bar'),
-            [NOTCH_BAR_CLASS]: own && this._settings.get_boolean('island-in-top-bar'),
-            [GLASS_BAR_CLASS]: own && this.opacity < SHADOW_BELOW,
+            [BAR_CLASS]: black && !glassBar,
+            [COMPACT_BAR_CLASS]: false,
+            [NOTCH_BAR_CLASS]: black && !glassBar && this._settings.get_boolean('island-in-top-bar'),
+            [GLASS_BAR_CLASS]: black && !glassBar && this.opacity < SHADOW_BELOW,
         });
     }
 
