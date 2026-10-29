@@ -50,7 +50,7 @@ shoulders and corners included, so nothing shows outside it. On glass,
 buttons are white at 8–16% instead of grey, an answer (Allow, Run, Join) and
 a toggle that is on take GNOME's accent colour (the user's, from GNOME 47),
 an OK stays white, and the assistant's and the alerts' light keeps to the
-edge, each colour lit by its own lightness, so it never burns to white. Closed, it sits inside the bar
+edge, each colour lit by its own lightness, so it never burns to white. Settings → Appearance → Colours can follow the GNOME Shell theme's top bar instead of Isle's palette; Glass still blurs what is behind the island. See-through top bar can be turned off, and the shell theme's own bar is left as it is. Closed, it sits inside the bar
 (32 px, against 26 px when it hangs below instead): maximised
 windows start below the bar, so the resting island never covers an app and
 no screen space is lost to it. Alerts and the open island reach below the
@@ -130,8 +130,8 @@ call starts → Call during a call → Notifications if some arrived unseen
 runs → Music.
 
 Pages, in order: **Call** (only during a call) **· Music · Notifications ·
-Focus · Reminders · Shelf · Calendar · Apps · Usage** (Apps only with its switch
-on, Usage only with an AI plan found), one tab each in the header. Lists scroll
+Focus · Reminders · Shelf · Calendar · Weather · Apps · Usage** (Apps only with its switch
+on, Usage only with an AI plan found), one tab each in the header. Weather uses the cities saved in GNOME Weather: one city with the hours ahead, or two side by side. Lists scroll
 with the wheel or touchpad and never show a scrollbar.
 
 ## 4. Closed island

@@ -1,0 +1,5 @@
+The weather scenes (gnome-extension/src/weatherArt.js and weatherScene.js) are
+taken from Sanket, https://github.com/narkagni/sanket, under the GNU General
+Public License, version 3 or later, which is the same licence as Isle.
+
+Copyright (C) 2026 NarkAgni

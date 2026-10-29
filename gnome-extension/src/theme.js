@@ -14,10 +14,17 @@ const LOOKS = {
 };
 
 let current = 'black';
+/** The top bar's colour while Colours is GNOME Shell and the island is black. Glass keeps its own fill. */
+let shellFill = null;
 
 /** Sets the look by its Settings name; anything unknown is black. */
 export function setTheme(name) {
     current = name in LOOKS ? name : 'black';
+}
+
+/** `fill` is RGBA 0..1 from the shell theme, or null for Isle's own black. */
+export function setShellFill(fill) {
+    shellFill = fill;
 }
 
 /** The look in use: 'black' or 'glass'. */
@@ -27,11 +34,15 @@ export function theme() {
 
 /** The island's colour as RGBA in 0..1; glass lets the blur behind show through. */
 export function fill() {
+    if (current === 'black' && shellFill)
+        return shellFill;
     return LOOKS[current].fill;
 }
 
 /** An opaque colour as dark as the island looks, as RGB: for rings and corners painted over it. */
 export function solid() {
+    if (current === 'black' && shellFill)
+        return shellFill.slice(0, 3);
     return LOOKS[current].solid;
 }
 

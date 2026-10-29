@@ -19,6 +19,20 @@
       <summary>The island's look</summary>
       <description>black: Isle's own black island. glass: dark glass over what is behind it, blurred, as Blur my Shell draws GNOME's menus.</description>
     </key>
+    <key name="appearance" type="s">
+      <choices>
+        <choice value="isle"/>
+        <choice value="shell"/>
+      </choices>
+      <default>'isle'</default>
+      <summary>Colours</summary>
+      <description>isle: Isle's own dark palette. shell: the GNOME Shell theme's top bar, for text, icons and accent. Glass still blurs what is behind the island.</description>
+    </key>
+    <key name="top-bar-mac" type="b">
+      <default>true</default>
+      <summary>See-through top bar</summary>
+      <description>On, Isle paints the top bar, from see-through to black. Off, the GNOME Shell theme's top bar is left as it is.</description>
+    </key>
     <key name="top-bar-opacity" type="i">
       <range min="0" max="100"/>
       <default>0</default>
@@ -128,10 +142,24 @@
       <summary>World clocks on the Calendar page</summary>
       <description>A globe on the Calendar page shows the time in the cities of GNOME’s World Clocks.</description>
     </key>
+    <key name="weather-layout" type="s">
+      <choices>
+        <choice value="details"/>
+        <choice value="pair"/>
+      </choices>
+      <default>'details'</default>
+      <summary>Weather page layout</summary>
+      <description>“details”: humidity, wind and the next few hours under the city. “pair”: the chosen city and the next saved one, side by side.</description>
+    </key>
+    <key name="weather-place" type="i">
+      <default>0</default>
+      <summary>Which saved place is shown</summary>
+      <description>An index into the cities saved in GNOME Weather. The first city is shown when this is out of range, and none when that list is empty.</description>
+    </key>
     <key name="hidden-pages" type="as">
       <default>[]</default>
       <summary>Pages left out of the island</summary>
-      <description>Names of the open island’s pages that have no tab: music, notifications, focus, reminders, shelf, calendar. The Apps and Usage pages have their own switches (app-usage, usage-enabled).</description>
+      <description>Names of the open island’s pages that have no tab: music, notifications, focus, reminders, shelf, calendar, weather. The Apps and Usage pages have their own switches (app-usage, usage-enabled).</description>
     </key>
     <key name="app-usage" type="b">
       <default>false</default>

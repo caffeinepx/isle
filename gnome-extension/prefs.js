@@ -313,10 +313,22 @@ export default class IslePreferences extends ExtensionPreferences {
             ['black', 'Black'],
             ['glass', 'Glass'],
         ]));
-        look.add(topBarRow(settings, window));
-        look.add(switchRow(settings, 'compact-top-bar', 'Compact top bar', 'A slimmer top bar that frames the island like a bezel'));
-        look.add(switchRow(settings, 'island-in-top-bar', 'Island inside the top bar',
-            'Like a notch: the closed island never covers windows'));
+        look.add(choiceRow(settings, 'appearance', 'Colours', 'Isle’s own dark palette, or the GNOME Shell theme in use', [
+            ['isle', 'Isle'],
+            ['shell', 'GNOME Shell'],
+        ]));
+        const macBar = switchRow(settings, 'top-bar-mac', 'See-through top bar', 'Like on a Mac. Off leaves your shell theme’s bar alone');
+        look.add(macBar);
+        const bar = topBarRow(settings, window);
+        settings.bind('top-bar-mac', bar, 'sensitive', Gio.SettingsBindFlags.GET);
+        look.add(bar);
+        const compact = switchRow(settings, 'compact-top-bar', 'Compact top bar', 'A slimmer top bar that frames the island like a bezel');
+        const inside = switchRow(settings, 'island-in-top-bar', 'Island inside the top bar',
+            'Like a notch: the closed island never covers windows');
+        settings.bind('top-bar-mac', compact, 'sensitive', Gio.SettingsBindFlags.GET);
+        settings.bind('top-bar-mac', inside, 'sensitive', Gio.SettingsBindFlags.GET);
+        look.add(compact);
+        look.add(inside);
         const depth = spinRow(settings, 'notch-depth', 'Island height', 'How far the closed island hangs below the top bar, in pixels', 24, 40);
         settings.bind('island-in-top-bar', depth, 'sensitive', Gio.SettingsBindFlags.GET | Gio.SettingsBindFlags.INVERT_BOOLEAN);
         look.add(depth);
@@ -337,6 +349,12 @@ export default class IslePreferences extends ExtensionPreferences {
         byHover();
         look.add(delay);
         page.add(look);
+        const weather = new Adw.PreferencesGroup({title: 'Weather'});
+        weather.add(choiceRow(settings, 'weather-layout', 'Layout', 'What fills the space beside the city', [
+            ['details', 'More details'],
+            ['pair', 'Two cities'],
+        ]));
+        page.add(weather);
         page.add(pagesGroup(settings, window));
         page.add(appUsageGroup(settings, window));
         page.add(worldClocksGroup(settings, window));
@@ -753,6 +771,7 @@ const PAGES = [
     ['reminders', 'Reminders', 'object-select-symbolic', 'Your to-do list'],
     ['shelf', 'Shelf', 'edit-paste-symbolic', 'Clipboard history (Super+V) and the files tray'],
     ['calendar', 'Calendar', 'x-office-calendar-symbolic', 'The month, its events and world clocks'],
+    ['weather', 'Weather', 'weather-clear-symbolic', 'One place at a time, from the cities saved in GNOME Weather'],
 ];
 
 /** A switch per page; the last one on can't be turned off, so the island always has a page. */

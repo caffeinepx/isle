@@ -492,10 +492,32 @@ export const CalendarPage = GObject.registerClass({
             const city = label(name, 'isle-cal-world-city', {x_expand: true});
             city.clutter_text.ellipsize = Pango.EllipsizeMode.END;
             row.add_child(city);
+            const side = new St.BoxLayout({
+                ...VERTICAL,
+                style_class: 'isle-cal-world-side',
+                y_align: Clutter.ActorAlign.CENTER,
+                x_align: Clutter.ActorAlign.END,
+            });
+            const line = new St.BoxLayout({
+                style_class: 'isle-cal-world-side-line',
+                x_align: Clutter.ActorAlign.END,
+                x_expand: true,
+            });
             clock.meta = label('', 'isle-cal-world-meta');
-            row.add_child(clock.meta);
-            clock.time = label('', 'isle-cal-world-time');
-            row.add_child(clock.time);
+            clock.time = label('', 'isle-cal-world-time', {x_align: Clutter.ActorAlign.END, x_expand: true});
+            line.add_child(clock.meta);
+            line.add_child(clock.time);
+            clock.under = label('', 'isle-cal-world-meta isle-cal-world-meta-under', {
+                x_align: Clutter.ActorAlign.END,
+                x_expand: true,
+            });
+            clock.under.visible = false;
+            side.add_child(line);
+            side.add_child(clock.under);
+            row.add_child(side);
+            clock.row = row;
+            clock.city = city;
+            row.connect('notify::width', () => this._placeMeta(clock));
             this._worldList.add_child(row);
             this._worldClocks.push(clock);
         }
@@ -523,6 +545,7 @@ export const CalendarPage = GObject.registerClass({
             set(chipTime, shown);
             set(time, shown);
             set(meta, [WorldClocks.dayText(timezone, now), WorldClocks.offsetText(timezone, now)].filter(Boolean).join(' · '));
+            this._placeMeta(clock);
             const sky = skyIcon(there.get_hour());
             if (clock.icon && clock.sky !== sky) {
                 clock.sky = sky;
@@ -531,6 +554,26 @@ export const CalendarPage = GObject.registerClass({
         }
         if (this.active)
             this.later('world', (60 - now.get_seconds()) * 1000 + 50, () => this._tickWorld());
+    }
+
+    /** The offset sits beside the time, or under it when the row is not wide enough. */
+    _placeMeta(clock) {
+        const {row, meta, under, time, city, icon} = clock;
+        if (!meta || !row)
+            return;
+        const text = meta.text;
+        if (under.text !== text)
+            under.text = text;
+        if (!text || row.width < 1) {
+            meta.visible = Boolean(text);
+            under.visible = false;
+            return;
+        }
+        const wide = actor => actor?.get_preferred_width(-1)[1] ?? 0;
+        const need = wide(icon) + wide(city) + wide(meta) + wide(time);
+        const stack = need + 64 > row.width;
+        meta.visible = !stack;
+        under.visible = stack;
     }
 
     // The desktop's calendars

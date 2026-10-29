@@ -806,31 +806,64 @@
 .isle-cal-world-toggle { padding: 4px; border-radius: 999px; transition-duration: 120ms; }
 .isle-cal-world-toggle:hover { background-color: rgba(255, 255, 255, 0.1); }
 .isle-cal-world-toggle:checked { background-color: rgba(255, 255, 255, 0.18); }
+.isle-cal-world { spacing: 8px; }
 .isle-cal-world-row {
-  spacing: 8px;
-  padding: 0 10px;
-  min-height: 26px;
-  border-radius: 7px;
+  spacing: 10px;
+  padding: 6px 12px;
+  min-height: 36px;
+  border-radius: 10px;
   background-color: rgba(255, 255, 255, 0.07);
 }
-.isle-cal-world-icon { icon-size: 16px; color: rgba(255, 255, 255, 0.9); }
-.isle-cal-world-city { font-size: 13px; font-weight: 600; }
-.isle-cal-world-meta { font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.55); }
-.isle-cal-world-time { font-size: 13px; font-weight: 600; font-feature-settings: "tnum"; }
+.isle-cal-world-icon { icon-size: 18px; color: rgba(255, 255, 255, 0.9); }
+.isle-cal-world-city { font-size: 14px; font-weight: 600; }
+.isle-cal-world-side { spacing: 0; }
+.isle-cal-world-side-line { spacing: 10px; }
+.isle-cal-world-meta { font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.55); }
+.isle-cal-world-meta-under { font-size: 11px; }
+.isle-cal-world-time { font-size: 15px; font-weight: 600; font-feature-settings: "tnum"; }
 .isle-cal-world-strip {
-  padding: 3px 2px 0 2px;
+  padding: 8px 4px 2px 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   transition-duration: 120ms;
 }
 .isle-cal-world-strip:hover .isle-cal-world-chip-city { color: rgba(255, 255, 255, 0.8); }
-.isle-cal-world-strip-box { spacing: 14px; }
-.isle-cal-world-chip { spacing: 5px; }
-.isle-cal-world-chip-city { font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.55); }
-.isle-cal-world-chip-time { font-size: 11px; font-weight: 600; font-feature-settings: "tnum"; }
+.isle-cal-world-strip-box { spacing: 18px; }
+.isle-cal-world-chip { spacing: 6px; }
+.isle-cal-world-chip-city { font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.55); }
+.isle-cal-world-chip-time { font-size: 12px; font-weight: 600; font-feature-settings: "tnum"; }
 .isle-cal-empty { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.55); }
 .isle-cal-accounts { font-size: 12px; color: rgba(10, 132, 255, 1); padding: 4px 8px; border-radius: 8px; }
 .isle-cal-accounts:hover { background-color: rgba(255, 255, 255, 0.08); }
 .isle-cal-accounts:focus { color: #ffffff; }
+
+/* ── Weather ──────────────────────────────────────────── */
+
+.isle-weather { padding: 0 6px 0 10px; spacing: 8px; }
+.isle-weather-city { spacing: 10px; }
+.isle-weather-copy { spacing: 2px; }
+.isle-weather-divider { font-size: 20px; font-weight: 200; color: rgba(255, 255, 255, 0.28); padding: 0 2px; }
+.isle-weather-edit { padding: 6px; }
+.isle-weather-head { spacing: 6px; min-height: 0; }
+.isle-weather-scene { width: 112px; height: 112px; }
+.isle-weather-place { font-size: 15px; font-weight: 600; }
+.isle-weather-temp { font-size: 34px; font-weight: 600; letter-spacing: -0.6px; font-feature-settings: "tnum"; }
+.isle-weather-condition { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
+.isle-weather-facts { font-size: 12px; color: rgba(255, 255, 255, 0.62); }
+.isle-weather-forecast { spacing: 16px; padding-top: 8px; }
+.isle-weather-hour { spacing: 1px; }
+.isle-weather-hour-time { font-size: 11px; color: rgba(255, 255, 255, 0.5); }
+.isle-weather-hour-temp { font-size: 13px; font-weight: 600; font-feature-settings: "tnum"; }
+.isle-weather-pair .isle-weather-scene { width: 76px; height: 76px; }
+.isle-weather-pair .isle-weather-temp { font-size: 26px; }
+.isle-weather-empty { spacing: 8px; padding-top: 4px; }
+.isle-weather-editor { spacing: 4px; padding: 0 2px; }
+.isle-weather-search { padding: 3px 12px; margin-bottom: 0; }
+.isle-weather-lists { spacing: 2px; }
+.isle-weather-list { spacing: 1px; }
+.isle-weather-row { spacing: 1px; padding: 2px 8px; }
+.isle-weather-row-name { font-size: 13px; font-weight: 600; }
+.isle-weather-place-button { border-radius: 10px; }
+.isle-weather-place-button:hover, .isle-weather-place-button.active { background-color: rgba(255, 255, 255, 0.08); }
 
 /* ── Notifications ────────────────────────────────────── */
 

@@ -35,7 +35,11 @@ export function readCities(settings) {
 }
 
 /** Every city GNOME knows, `{location, name, place, search}`, by name; `place` is "State, Country". */
+let cachedCities = null;
+
 export function allCities() {
+    if (cachedCities)
+        return cachedCities;
     const cities = [];
     // Down through continents, countries and regions to their cities.
     const walk = parent => {
@@ -53,7 +57,8 @@ export function allCities() {
     const world = GWeather.Location.get_world();
     if (world)
         walk(world);
-    return cities.sort((a, b) => a.name.localeCompare(b.name));
+    cachedCities = cities.sort((a, b) => a.name.localeCompare(b.name));
+    return cachedCities;
 }
 
 /** Writes the cities where GNOME keeps them: the shell's list, and Clocks' own so the app shows the same. */

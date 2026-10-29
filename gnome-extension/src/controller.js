@@ -33,6 +33,7 @@ import {PrivacyMonitor} from './privacy.js';
 import {PeekView} from './peek.js';
 import * as Playback from './playback.js';
 import {KeyboardWatcher, OsdHook, TopBar} from './shell.js';
+import * as ShellTheme from './shellTheme.js';
 import {ShelfHelper} from './shelfHelper.js';
 import {AppsPage} from './pages/apps.js';
 import {CallPage} from './pages/call.js';
@@ -43,8 +44,10 @@ import {ShelfPage} from './pages/shelf.js';
 import {TasksPage} from './pages/tasks.js';
 import {TimerPage} from './pages/timer.js';
 import {UsagePage} from './pages/usage.js';
+import {WeatherPage} from './pages/weather.js';
 import {ReminderWatcher} from './reminders.js';
 import * as Theme from './theme.js';
+import {paint} from './shellTheme.js';
 import {GREETING, InstalledApps, UNDO_MS, VoiceView, stopUnit, actionTypes, aiSettings, openSetUp, openSignIn, runActions, signInHint, stopPending, voiceContext} from './voice.js';
 import {TextWriter} from './writer.js';
 
@@ -350,6 +353,13 @@ export class Controller {
         this._syncUsage();
         this._syncEventAlerts();
         this._syncPages();
+        try {
+            ShellTheme.watch(this._settings, this._island, this._extension.dir.get_child('stylesheet.css'), () => {
+                this._applyShellFill();
+            });
+        } catch (e) {
+            console.warn(`Isle: shell colours were left off: ${e.message}`);
+        }
         // The pointer met while it was still being built (after unlocking, at rest on it) is told now.
         if (this._island.hovered)
             this._onHoverChanged();
@@ -369,6 +379,7 @@ export class Controller {
             () => new TasksPage(this._daemon, size),
             () => new ShelfPage(this._daemon, this._clipboard, this._settings, size),
             () => new CalendarPage(this._daemon, this._settings, size),
+            () => new WeatherPage(this._daemon, this._settings, size),
             () => new AppsPage(this._daemon, this._appUsage, size),
             () => new UsagePage(this._daemon, size),
         ];
@@ -780,7 +791,14 @@ export class Controller {
             else
                 this._island.remove_style_class_name(name);
         }
-        this._island.refreshTheme();
+        this._applyShellFill();
+    }
+
+    /** A black island follows the shell theme's top bar. Glass keeps its own fill and blur. */
+    _applyShellFill() {
+        const shell = this._settings.get_string('appearance') === 'shell';
+        Theme.setShellFill(shell && Theme.theme() !== 'glass' ? [paint.red, paint.green, paint.blue, paint.alpha] : null);
+        this._island?.refreshTheme();
     }
 
     /** Times the app in front while the Apps page's switch is on; clears when asked. */
@@ -2475,6 +2493,11 @@ export class Controller {
         if (this._activeWatch)
             monitor.remove_watch(this._activeWatch);
 
+        try {
+            ShellTheme.unwatch();
+        } catch (e) {
+            // Already stopped.
+        }
         this._settingsChanged.forEach(id => this._settings.disconnect(id));
         Main.layoutManager.disconnect(this._monitorsChanged);
         this._releaseScanout();
@@ -2540,6 +2563,11 @@ export class Controller {
         const monitor = global.backend.get_core_idle_monitor();
         for (const watch of [this._idleWatch, this._batteryIdleWatch, this._activeWatch].filter(Boolean))
             monitor.remove_watch(watch);
+        try {
+            ShellTheme.unwatch();
+        } catch (e) {
+            // Already stopped.
+        }
         this._settingsChanged?.forEach(id => this._settings.disconnect(id));
         if (this._monitorsChanged)
             Main.layoutManager.disconnect(this._monitorsChanged);

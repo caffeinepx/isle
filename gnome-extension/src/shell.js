@@ -41,7 +41,7 @@ export class TopBar extends Signals.EventEmitter {
         this._dateMenu.reactive = false;
 
         this._settingsChanged = [
-            ...['top-bar-style', 'top-bar-opacity', 'island-theme'].map(key => settings.connect(`changed::${key}`, () => {
+            ...['top-bar-style', 'top-bar-opacity', 'top-bar-mac', 'island-theme'].map(key => settings.connect(`changed::${key}`, () => {
                 this._yielded = false;
                 const blended = this._blended;
                 this._applyStyle();
@@ -99,8 +99,15 @@ export class TopBar extends Signals.EventEmitter {
             delete Main.panel.toggleCalendar;
     }
 
+    /** Whether Isle paints the bar. Off, the shell theme's bar is left alone. */
+    get ownsBar() {
+        return this._settings.get_boolean('top-bar-mac');
+    }
+
     /** The bar's opacity in %: Settings' slider, else as the older Glass (0) or Black (100) choice says. */
     get opacity() {
+        if (!this.ownsBar)
+            return null;
         if (this._settings.get_user_value('top-bar-opacity'))
             return this._settings.get_int('top-bar-opacity');
         return this._settings.get_string('top-bar-style') === 'black' ? 100 : 0;
@@ -109,7 +116,7 @@ export class TopBar extends Signals.EventEmitter {
     /** Whether the bar is as black as the island; otherwise the island hangs from the screen's top edge.
      * GNOME's grey island never is. */
     get blendsIn() {
-        return this.opacity >= 100 && this._settings.get_string('island-theme') === 'black';
+        return this.ownsBar && this.opacity >= 100 && this._settings.get_string('island-theme') === 'black';
     }
 
     /** Keeps the top bar's centre clear for the island. */
@@ -133,11 +140,12 @@ export class TopBar extends Signals.EventEmitter {
         this._blended = this.blendsIn;
         this._syncColor();
         // The bar's height changes with these; `height-changed` re-lays out the island.
+        const own = this.ownsBar;
         setStyleClasses(Main.panel, {
-            [BAR_CLASS]: true,
-            [COMPACT_BAR_CLASS]: this._settings.get_boolean('compact-top-bar'),
-            [NOTCH_BAR_CLASS]: this._settings.get_boolean('island-in-top-bar'),
-            [GLASS_BAR_CLASS]: this.opacity < SHADOW_BELOW,
+            [BAR_CLASS]: own,
+            [COMPACT_BAR_CLASS]: own && this._settings.get_boolean('compact-top-bar'),
+            [NOTCH_BAR_CLASS]: own && this._settings.get_boolean('island-in-top-bar'),
+            [GLASS_BAR_CLASS]: own && this.opacity < SHADOW_BELOW,
         });
     }
 
@@ -168,14 +176,14 @@ export class TopBar extends Signals.EventEmitter {
     }
 
     /** The bar's style with Isle's colour rule at `opacity`, the rest of it left alone. */
-    _wantedStyle(opacity = this.opacity) {
+    _wantedStyle(opacity = this.ownsBar ? this.opacity : null) {
         const others = (Main.panel.get_style() ?? '').replace(BAR_RULE, '').trim();
         const rule = this._barRule(opacity);
         return rule ? `${others} ${rule}`.trim() : others;
     }
 
-    /** Sets Isle's colour rule, leaving the rest of the style alone. */
-    _syncColor(opacity = this.opacity) {
+    /** Sets Isle's colour rule, leaving the rest of the style alone. No rule when the theme owns the bar. */
+    _syncColor(opacity = this.ownsBar ? this.opacity : null) {
         const wanted = this._wantedStyle(opacity);
         if (wanted === (Main.panel.get_style() ?? ''))
             return;
