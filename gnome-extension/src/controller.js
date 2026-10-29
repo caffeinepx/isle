@@ -500,7 +500,7 @@ export class Controller {
         for (const key of ['hidden-pages', 'world-clocks', 'app-usage'])
             this._settingsChanged.push(this._settings.connect(`changed::${key}`, () => this._syncPages()));
         this._settingsChanged.push(this._settings.connect('changed::app-usage-clear', () => this._syncAppUsage()));
-        for (const key of ['appearance', 'glass', 'glass-strength', 'glass-top-bar'])
+        for (const key of ['appearance', 'glass', 'glass-strength', 'glass-refraction', 'glass-top-bar'])
             this._settingsChanged.push(this._settings.connect(`changed::${key}`, () => this._syncTheme()));
         for (const provider of AGENT_PROVIDERS) {
             this._settingsChanged.push(this._settings.connect(`changed::agent-alerts-${provider}`, () =>
@@ -795,7 +795,9 @@ export class Controller {
         this._migrateGlass();
         const shell = this._settings.get_string('appearance') === 'shell';
         Theme.setShellFill(shell ? [paint.red, paint.green, paint.blue, paint.alpha] : null);
-        Theme.setGlass(this._settings.get_boolean('glass'), this._settings.get_int('glass-strength') / 100);
+        Theme.setGlass(this._settings.get_boolean('glass'),
+            this._settings.get_int('glass-strength') / 100,
+            this._settings.get_int('glass-refraction') / 100);
         const glass = Theme.glass();
         // The glass stylesheet forces Isle's whites and blues. Shell colours keep their own.
         for (const [name, on] of [['isle-theme-glass', glass && !shell], ['isle-accent-system', glass && !shell && HAS_ACCENT]]) {

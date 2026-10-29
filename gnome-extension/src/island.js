@@ -650,10 +650,12 @@ export const Island = GObject.registerClass({
             band.addColorStopRGBA(1, r, g, b, 0.2 * strength);
             return [band, ...corners];
         }
-        // Black under the top bar, deepening to the cover's colour.
+        // Cover colour at the bottom, fading to nothing at the top. On glass it stays see-through.
         const wash = new Cairo.LinearGradient(0, top, 0, height);
+        const bottom = (Theme.glass() ? 0.38 : 0.72) * strength;
         wash.addColorStopRGBA(0, r, g, b, 0);
-        wash.addColorStopRGBA(1, r, g, b, 0.75 * strength);
+        wash.addColorStopRGBA(0.55, r, g, b, bottom * 0.35);
+        wash.addColorStopRGBA(1, r, g, b, bottom);
         return [wash];
     }
 

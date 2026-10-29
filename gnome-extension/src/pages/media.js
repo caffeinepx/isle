@@ -85,9 +85,9 @@ class MediaPage extends Page {
         return this._shown('lyrics') ? px(LYRICS_WIDTH) : null;
     }
 
-    /** The cover's colour, behind the lyrics only. */
+    /** The cover's colour, on this page only, while a track is on. */
     get tint() {
-        return this._shown('lyrics') ? this._tint : null;
+        return Playback.hasTrack(this.daemon.state.nowPlaying) ? this._tint : null;
     }
 
     /** Whether `mode` is on screen (the special modes need a track). */
@@ -343,8 +343,14 @@ class MediaPage extends Page {
         if (this.hidden)
             return;
         const {nowPlaying} = this.daemon.state;
-        if (!this._syncMode())
+        if (!this._syncMode()) {
+            if (this._tint) {
+                this._tint = null;
+                this._tintPath = null;
+                this.emit('tint-changed');
+            }
             return;
+        }
         // A new song changes the layouts not shown too: they are laid out ahead (see `Page.markCold`).
         const track = [nowPlaying.title, nowPlaying.artist, nowPlaying.album, nowPlaying.identity, nowPlaying.art_path].join('\u001f');
         if (track !== this._track) {
@@ -458,8 +464,7 @@ class MediaPage extends Page {
             if (key !== this._tintPath || this._destroyed)
                 return;
             this._tint = vividColorOfFile(cover ?? path);
-            if (this._shown('lyrics'))
-                this.emit('tint-changed');
+            this.emit('tint-changed');
         });
     }
 

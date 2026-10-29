@@ -43,7 +43,7 @@ export class TopBar extends Signals.EventEmitter {
         this._dateMenu.reactive = false;
 
         this._settingsChanged = [
-            ...['top-bar-style', 'top-bar-opacity', 'top-bar-mac', 'island-theme', 'appearance', 'glass', 'glass-strength', 'glass-top-bar'].map(key => settings.connect(`changed::${key}`, () => {
+            ...['top-bar-style', 'top-bar-opacity', 'top-bar-mac', 'island-theme', 'appearance', 'glass', 'glass-strength', 'glass-refraction', 'glass-top-bar'].map(key => settings.connect(`changed::${key}`, () => {
                 this._yielded = false;
                 const blended = this._blended;
                 this._applyStyle();

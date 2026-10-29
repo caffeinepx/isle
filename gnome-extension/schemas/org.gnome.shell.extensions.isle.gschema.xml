@@ -36,8 +36,14 @@
     <key name="glass-strength" type="i">
       <range min="0" max="100"/>
       <default>30</default>
-      <summary>Glass strength</summary>
-      <description>0 is clear liquid glass. 100 is a darker tint and a softer blur.</description>
+      <summary>Glass tint</summary>
+      <description>How dark the tint over the island colour is. 0 is light, 100 is dark. It does not change the blur.</description>
+    </key>
+    <key name="glass-refraction" type="i">
+      <range min="0" max="100"/>
+      <default>45</default>
+      <summary>Liquid glass</summary>
+      <description>How much what is behind the glass is refracted. Low is clearer, high is glassier.</description>
     </key>
     <key name="glass-top-bar" type="b">
       <default>false</default>

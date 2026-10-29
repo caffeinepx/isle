@@ -315,9 +315,18 @@ export default class IslePreferences extends ExtensionPreferences {
         ]));
         const glass = switchRow(settings, 'glass', 'Glass', 'Blur and a tint of the island colour. The colour stays.');
         look.add(glass);
-        const strength = glassRow(settings);
-        settings.bind('glass', strength, 'sensitive', Gio.SettingsBindFlags.GET);
-        look.add(strength);
+        const tint = amountRow(settings, {
+            key: 'glass-strength', title: 'Tint', low: 'Clear', high: 'Dark',
+            describe: value => value <= 15 ? 'A light tint' : value >= 85 ? 'A dark tint' : 'How dark the glass tint is',
+        });
+        const refraction = amountRow(settings, {
+            key: 'glass-refraction', title: 'Liquid glass', low: 'Less', high: 'More',
+            describe: value => value <= 15 ? 'Barely refracts' : value >= 85 ? 'Strong refraction' : 'How much the glass refracts',
+        });
+        settings.bind('glass', tint, 'sensitive', Gio.SettingsBindFlags.GET);
+        settings.bind('glass', refraction, 'sensitive', Gio.SettingsBindFlags.GET);
+        look.add(tint);
+        look.add(refraction);
         const glassBar = switchRow(settings, 'glass-top-bar', 'On the top bar too', 'The same blur and tint on the bar');
         settings.bind('glass', glassBar, 'sensitive', Gio.SettingsBindFlags.GET);
         look.add(glassBar);
@@ -706,41 +715,38 @@ function switchRow(settings, key, title, subtitle) {
     return row;
 }
 
-/** How glassy the island is, from a light liquid to a heavier one. */
-function glassRow(settings) {
-    const row = new Adw.ActionRow({title: 'Liquid glass'});
+/** A 0–100 slider for an int key, in steps of 5. `describe` sets the row's subtitle. */
+function amountRow(settings, {key, title, low, high, describe}) {
+    const row = new Adw.ActionRow({title});
     const scale = new Gtk.Scale({
         adjustment: new Gtk.Adjustment({lower: 0, upper: 100, step_increment: 5, page_increment: 25}),
         draw_value: false, width_request: 150, valign: Gtk.Align.CENTER,
     });
     const ends = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER});
-    ends.append(new Gtk.Label({label: 'Less', css_classes: ['dim-label', 'caption']}));
+    ends.append(new Gtk.Label({label: low, css_classes: ['dim-label', 'caption']}));
     ends.append(scale);
-    ends.append(new Gtk.Label({label: 'More', css_classes: ['dim-label', 'caption']}));
+    ends.append(new Gtk.Label({label: high, css_classes: ['dim-label', 'caption']}));
     row.add_suffix(ends);
     row.activatable_widget = scale;
-    const describe = value => {
-        row.subtitle = value <= 15 ? 'A light liquid glass' : value >= 85 ? 'Heavier glass' : 'How glassy the island is';
-    };
     let syncing = false;
     scale.connect('value-changed', () => {
         if (syncing)
             return;
         const value = Math.round(scale.get_value() / 5) * 5;
-        describe(value);
-        if (settings.get_int('glass-strength') !== value)
-            settings.set_int('glass-strength', value);
+        row.subtitle = describe(value);
+        if (settings.get_int(key) !== value)
+            settings.set_int(key, value);
     });
     const sync = () => {
-        const value = settings.get_int('glass-strength');
-        describe(value);
+        const value = settings.get_int(key);
+        row.subtitle = describe(value);
         if (Math.round(scale.get_value()) === value)
             return;
         syncing = true;
         scale.set_value(value);
         syncing = false;
     };
-    const changed = settings.connect('changed::glass-strength', sync);
+    const changed = settings.connect(`changed::${key}`, sync);
     row.connect('destroy', () => settings.disconnect(changed));
     sync();
     return row;
